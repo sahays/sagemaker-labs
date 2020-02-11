@@ -1,5 +1,7 @@
 # Lab 01: Setting up Amazon SageMaker Notebook instance
 
+
+
 ## AWS Console
 ![AWS Console](./images/01-lab/01-aws-console.png)
 
@@ -28,3 +30,4 @@ Create a new IAM role
 ![hello-world](./images/01-lab/10-hello-world.png)
 
 
+[< Home](./readme.md) | [Next: Lab 02 >](./02-lab.md)

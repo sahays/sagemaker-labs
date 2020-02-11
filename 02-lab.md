@@ -7,3 +7,4 @@ https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-pytho
 Preprocess input data before making predictions using Amazon SageMaker inference pipelines and Scikit-learn
 https://aws.amazon.com/blogs/machine-learning/preprocess-input-data-before-making-predictions-using-amazon-sagemaker-inference-pipelines-and-scikit-learn/
 
+[< Prev: Lab 01](./01-lab.md) | [Home](./readme.md) | [Next: Lab 03 >](./03-lab.md)

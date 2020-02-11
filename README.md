@@ -10,7 +10,7 @@
 
 [Lab 05: Bring your own model](./05-lab.md)
 
-[Lab 06: Tune your models: Getting started with Hyperparameter tuning](./06-lab.md)
+[Lab 06: Tune your models: Hyperparameter tuning](./06-lab.md)
 
 [Lab 07: Train your model](./07-lab.md)
 
