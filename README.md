@@ -1,5 +1,5 @@
 # Getting started
 
-[Page One](/page-one.md)
+[Lab 01: Setting up Amazon SageMaker Notebook instance](/01-lab.md)
 
 [Page Two](/page-two.md)
