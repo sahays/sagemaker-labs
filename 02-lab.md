@@ -6,9 +6,9 @@ Typically a Machine Learning (ML) process consists of few steps: data gathering 
 
 In many cases, when the trained model is used for processing real time or batch prediction requests, the model receives data in a format which needs to pre-processed (e.g. featurized) before it can be passed to the algorithm. 
 
-In this lab, we will demonstrate how you can build your ML Pipeline leveraging the Sagemaker Scikit-learn container and SageMaker Linear Learner algorithm & after the model is trained, run batch inferences using Amazon SageMaker Batch Transform.
+In this lab, we will demonstrate how you can build your ML Pipeline leveraging the SageMaker Scikit-learn container and SageMaker Linear Learner algorithm & after the model is trained, run batch inferences using Amazon SageMaker Batch Transform.
 
-We will demonstrate this using the Abalone Dataset to guess the age of Abalone with physical features. The dataset is available from UCI Machine Learning; the aim for this task is to determine age of an Abalone (a kind of shellfish) from its physical measurements. We'll use Sagemaker's Scikit-learn container to featurize the dataset so that it can be used for training with Linear Learner.
+We will demonstrate this using the Abalone Dataset to guess the age of Abalone with physical features. The dataset is available from UCI Machine Learning; the aim for this task is to determine age of an Abalone (a kind of shellfish) from its physical measurements. We'll use SageMaker's Scikit-learn container to featurize the dataset so that it can be used for training with Linear Learner.
 
 
 ## Step 1
@@ -46,16 +46,16 @@ train_input = sagemaker_session.upload_data(
 ```
 
 ## Step 4
-(Optional, but good read)
+### (Optional, but good read)
 
 Let's start creating pre-processing scripts. 
 
 This code described in this step already exists on the SageMaker instance, so you do not need to run the code in the section – you will simply call the existing script in the next step.  However, we recommend that you take the time to explore how the pipeline is handled by reading through the code.
 
-Now we are ready to create the container that will preprocess our data before it’s sent to the trained Linear Learner model.  This container will run the sklearn_abalone_featurizer.py’ script, which Amazon SageMaker will import for both training and prediction. Training is executed using the main method as the entry point, which parses arguments, reads the raw abalone dataset from Amazon S3, then runs the `SimpleImputer` and `StandardScaler` on the numeric features and `SimpleImputer` and `OneHotEncoder` on the categorical features. At the end of training, the script serializes the fitted ColumnTransformer to Amazon S3 so that it may be used during inference.
+Now we are ready to create the container that will preprocess our data before it’s sent to the trained Linear Learner model.  This container will run the `sklearn_abalone_featurizer.py` script, which Amazon SageMaker will import for both training and prediction. Training is executed using the main method as the entry point, which parses arguments, reads the raw abalone dataset from Amazon S3, then runs the `SimpleImputer` and `StandardScaler` on the numeric features and `SimpleImputer` and `OneHotEncoder` on the categorical features. At the end of training, the script serializes the fitted `ColumnTransformer` to Amazon S3 so that it may be used during inference.
 
 ### Explanation of the code
-Run Scikit-learn on Sagemaker SKLearn Estimator with a script as an entry point. The training script is very similar to a training script you might run outside of SageMaker, but you can access useful properties about the training environment through various environment variables, such as:
+This training script is very similar to one you might run outside of SageMaker, but you can access useful properties about the training environment through various environment variables, such as:
 - SM_MODEL_DIR: A string representing the path to the directory to write model artifacts to. These artifacts are uploaded to S3 for model hosting.
 - SM_OUTPUT_DIR: A string representing the filesystem path to write output artifacts to. Output artifacts may include checkpoints, graphs, and other files to save, not including model artifacts. These artifacts are compressed and uploaded to S3 to the same S3 prefix as the model artifacts.
 
@@ -117,12 +117,14 @@ def merge_two_dicts(x, y):
     z = x.copy()   # start with x's keys and values
     z.update(y)    # modifies z with y's keys and values & returns None
     return z
+```
 
+```python
 if __name__ == '__main__':
     # Hyperparameters are passed to your script as arguments and can be retrieved with an `argparse.ArgumentParser` instance
     parser = argparse.ArgumentParser()
 
-    # Sagemaker specific arguments. Defaults are set in the environment variables.
+    # SageMaker specific arguments. Defaults are set in the environment variables.
     parser.add_argument('--output-data-dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
     parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
     parser.add_argument('--train', type=str, default=os.environ['SM_CHANNEL_TRAIN'])
@@ -207,8 +209,8 @@ def input_fn(input_data, content_type):
         return df
     else:
         raise ValueError("{} not supported by script!".format(content_type))
-
-
+```
+```python
 def output_fn(prediction, accept):
     """Format prediction output
 
@@ -266,7 +268,7 @@ def model_fn(model_dir):
 ```python
 from sagemaker.sklearn.estimator import SKLearn
 
-script_path = 'sklearn_abalone_featurizer.py'
+script_path = '/home/ec2-user/sample-notebooks/sagemaker-python-sdk/scikit_learn_inference_pipeline/sklearn_abalone_featurizer.py'
 
 sklearn_preprocessor = SKLearn(
     entry_point=script_path,
@@ -278,7 +280,7 @@ sklearn_preprocessor.fit({'train': train_input})
 ```
 
 ## Step 6: Batch transform the training data
-Now that our proprocessor is properly fitted, let's go ahead and preprocess our training data. Let's use batch transform to directly preprocess the raw data and store right back into s3.
+Now that our proprocessor is properly fitted, let's go ahead and preprocess our training data. Let's use batch transform to directly preprocess the raw data and store right back into Amazon S3.
 ### Define a SKLearn Transformer from the trained SKLearn Estimator
 ```python
 transformer = sklearn_preprocessor.transformer(
@@ -293,7 +295,14 @@ transformer.transform(train_input, content_type='text/csv')
 print('Waiting for transform job: ' + transformer.latest_transform_job.job_name)
 transformer.wait()
 preprocessed_train = transformer.output_path
+print(preprocessed_train)
 ```
+When the transformer is done, our transformed data will be stored in Amazon S3.  You can find the location of the preprocessed data by looking at the values in the `preprocessed_train` variable.
 
+Appendix
+### ModuleNotFoundError: No module named 'sagemaker_containers'
+https://github.com/aws/sagemaker-pytorch-container/issues/45
+https://github.com/awslabs/amazon-sagemaker-examples/blob/master/advanced_functionality/pytorch_extending_our_containers/pytorch_extending_our_containers.ipynb
+https://pypi.org/project/sagemaker-containers/
 
 [< Prev: Lab 01](./01-lab.md) | [Home](./readme.md) | [Next: Lab 03 >](./03-lab.md)
