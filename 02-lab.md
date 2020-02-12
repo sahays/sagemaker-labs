@@ -46,13 +46,23 @@ train_input = sagemaker_session.upload_data(
 ```
 
 ## Step 4
-### (Optional, but good read)
 
 Let's start creating pre-processing scripts. 
 
-This code described in this step already exists on the SageMaker instance, so you do not need to run the code in the section – you will simply call the existing script in the next step.  However, we recommend that you take the time to explore how the pipeline is handled by reading through the code.
-
 Now we are ready to create the container that will preprocess our data before it’s sent to the trained Linear Learner model.  This container will run the `sklearn_abalone_featurizer.py` script, which Amazon SageMaker will import for both training and prediction. Training is executed using the main method as the entry point, which parses arguments, reads the raw abalone dataset from Amazon S3, then runs the `SimpleImputer` and `StandardScaler` on the numeric features and `SimpleImputer` and `OneHotEncoder` on the categorical features. At the end of training, the script serializes the fitted `ColumnTransformer` to Amazon S3 so that it may be used during inference.
+
+### Feature engineering using Amazon SageMaker [inference pipelines](https://docs.aws.amazon.com/sagemaker/latest/dg/inference-pipelines.html)
+We will train our classifier with the following features:
+- Numeric Features:
+    - length:  Longest shell measurement
+    - diameter: Diameter perpendicular to length
+    - height:  Height with meat in shell
+    - whole_weight: Weight of whole abalone
+    - shucked_weight: Weight of meat
+    - viscera_weight: Gut weight (after bleeding)
+    - shell_weight: Weight after being dried
+- Categorical Features:
+    - sex: categories encoded as strings {'M', 'F', 'I'} where 'I' is Infant
 
 ### Explanation of the code
 This training script is very similar to one you might run outside of SageMaker, but you can access useful properties about the training environment through various environment variables, such as:
@@ -299,10 +309,7 @@ print(preprocessed_train)
 ```
 When the transformer is done, our transformed data will be stored in Amazon S3.  You can find the location of the preprocessed data by looking at the values in the `preprocessed_train` variable.
 
-Appendix
-### ModuleNotFoundError: No module named 'sagemaker_containers'
-https://github.com/aws/sagemaker-pytorch-container/issues/45
-https://github.com/awslabs/amazon-sagemaker-examples/blob/master/advanced_functionality/pytorch_extending_our_containers/pytorch_extending_our_containers.ipynb
-https://pypi.org/project/sagemaker-containers/
+### Transformed output
+![abalone.csv.out](./images/02-lab/abalone.csv.out.png)
 
 [< Prev: Lab 01](./01-lab.md) | [Home](./readme.md) | [Next: Lab 03 >](./03-lab.md)
