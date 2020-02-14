@@ -15,7 +15,7 @@ find it more effective to build your own container. If the code that implements
 your algorithm is quite complex on its own or you need special additions to the
 framework, building your own container may be the right choice.
 
-## Permissions
+## Setup required permissions
 
 Running this notebook requires permissions in addition to the normal
 SageMakerFullAccess permissions. This is because we'll creating new repositories
@@ -24,7 +24,19 @@ managed policy AmazonEC2ContainerRegistryFullAccess to the role that you used to
 start your notebook instance. There's no need to restart your notebook instance
 when you do this, the new permissions will be available immediately.
 
-## TODO: Add screenshots
+Go to Amazon SageMaker console and click on your notebook instance
+![01-notebook](./images/04-lab/01-notebook.png)
+
+Scroll down, if you have to, to locate "Permissions and encryption" then click
+on the "IAM role ARN" ![02-permission](./images/04-lab/02-permission.png)
+
+Click on "Attach Policy" ![03-attach](./images/04-lab/03-attach.png)
+
+Find and select "AmazonEC2ContainerRegistryFullAccess" then click on "Attach
+policy" ![04-selectk](./images/04-lab/04-select.png)
+
+Just verify than "AmazonEC2ContainerRegistryFullAccess" is part of the role
+![05-verify](./images/04-lab/05-verify.png)
 
 ## Overview
 
@@ -134,12 +146,16 @@ up the right environment to run under.
 ```console
 !curl http://d1rwcpsuqsa5hl.cloudfront.net/scikit_bring_your_own.zip --output scikit_bring_your_own.zip
 !unzip scikit_bring_your_own.zip
+!mv scikit_bring_your_own/data ./
+!mv scikit_bring_your_own/container ./
+!rm scikit_bring_your_own.zip
+!rm -rf scikit_bring_your_own
 !cat scikit_bring_your_own/container/Dockerfile
 ```
 
 ### Building and registering the container
 
-```
+```python
 %%sh
 
 # The name of our algorithm
@@ -179,6 +195,124 @@ docker push ${fullname}
 ```
 
 ## Using the container
+
+Here we specify a bucket to use and the role that will be used for working with
+SageMaker.
+
+```python
+# S3 prefix
+prefix = 'DEMO-scikit-byo-iris'
+
+# Define IAM role
+import boto3
+import re
+
+import os
+import numpy as np
+import pandas as pd
+from sagemaker import get_execution_role
+
+role = get_execution_role()
+```
+
+The session remembers our connection parameters to SageMaker. We'll use it to
+perform all of our SageMaker operations.
+
+```python
+import sagemaker as sage
+from time import gmtime, strftime
+
+sess = sage.Session()
+```
+
+When training large models with huge amounts of data, you'll typically use big
+data tools, like Amazon Athena, AWS Glue, or Amazon EMR, to create your data in
+S3. For the purposes of this example, we're using some the classic Iris dataset,
+which we have included.
+
+We can use use the tools provided by the SageMaker Python SDK to upload the data
+to a default bucket.
+
+```python
+WORK_DIRECTORY = 'data'
+
+data_location = sess.upload_data(WORK_DIRECTORY, key_prefix=prefix)
+```
+
+In order to use SageMaker to fit our algorithm, we'll create an Estimator that
+defines how to use the container to train. This includes the configuration we
+need to invoke SageMaker training:
+
+- The container name. This is constructed as in the shell commands above.
+- The role. As defined above.
+- The instance count which is the number of machines to use for training.
+- The instance type which is the type of machine to use for training.
+- The output path determines where the model artifact will be written.
+- The session is the SageMaker session object that we defined above.
+
+Then we use fit() on the estimator to train against the data that we uploaded
+above.
+
+```python
+account = sess.boto_session.client('sts').get_caller_identity()['Account']
+region = sess.boto_session.region_name
+image = '{}.dkr.ecr.{}.amazonaws.com/sagemaker-decision-trees:latest'.format(account, region)
+
+tree = sage.estimator.Estimator(image,
+                       role, 1, 'ml.c4.2xlarge',
+                       output_path="s3://{}/output".format(sess.default_bucket()),
+                       sagemaker_session=sess)
+
+tree.fit(data_location)
+```
+
+### Hosting your model
+
+You can use a trained model to get real time predictions using HTTP endpoint.
+Follow these steps to walk you through the process.
+
+Deploying the model to SageMaker hosting just requires a deploy call on the
+fitted model. This call takes an instance count, instance type, and optionally
+serializer and deserializer functions. These are used when the resulting
+predictor is created on the endpoint.
+
+```python
+from sagemaker.predictor import csv_serializer
+predictor = tree.deploy(1, 'ml.m4.xlarge', serializer=csv_serializer)
+```
+
+In order to do some predictions, we'll extract some of the data we used for
+training and do predictions against it. This is, of course, bad statistical
+practice, but a good way to see how the mechanism works.
+
+```python
+shape=pd.read_csv("data/iris.csv", header=None)
+shape.sample(3)
+```
+
+```python
+# drop the label column in the training set
+shape.drop(shape.columns[[0]],axis=1,inplace=True)
+shape.sample(3)
+```
+
+```python
+import itertools
+
+a = [50*i for i in range(3)]
+b = [40+i for i in range(10)]
+indices = [i+j for i,j in itertools.product(a,b)]
+
+test_data=shape.iloc[indices[:-1]]
+```
+
+Prediction is as easy as calling predict with the predictor we got back from
+deploy and the data we want to do predictions with. The serializers take care of
+doing the data conversions for us.
+
+```python
+print(predictor.predict(test_data.values).decode('utf-8'))
+```
 
 [< Prev: Lab 03](./03-lab.md) | [Home](./readme.md) |
 [Next: Lab 05 >](./05-lab.md)
