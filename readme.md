@@ -8,7 +8,7 @@
 
 [Lab 04: Bring your own custom model with Amazon SageMaker](./bring-custom-model.md)
 
-[Lab 05: Hyperparameter tuning with Amazon SageMaker](./bring-custom-model.md)
+[Lab 05: Hyperparameter tuning with Amazon SageMaker](./hyperparamter-tuning.md)
 
 Supervised Learning with Gradient Boosted Trees: A Binary Prediction Problem
 With Unbalanced Classes
