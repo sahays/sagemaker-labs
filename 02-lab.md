@@ -312,4 +312,12 @@ When the transformer is done, our transformed data will be stored in Amazon S3. 
 ### Transformed output
 ![abalone.csv.out](./images/02-lab/abalone.csv.out.png)
 
+## Step 7: Head over to SageMaker console
+
+### Training > Training jobs
+
+### Inference > Models
+
+### Inference > Batch transform jobs
+
 [< Prev: Lab 01](./01-lab.md) | [Home](./readme.md) | [Next: Lab 03 >](./03-lab.md)
