@@ -5,3 +5,5 @@
 [Lab 02: Feature engineering](./02-lab.md)
 
 [Lab 03: Customer Churn Prediction with XGBoost](./03-lab.md)
+
+[Lab 04: Bring your own model with Amazon SageMaker](./04-lab.md)
