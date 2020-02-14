@@ -398,8 +398,7 @@ the `preprocessed_train` variable.
 
 ### Inference > Batch transform jobs
 
-[< Prev: Lab 01](./01-lab.md) | [Home](./readme.md) |
-[Next: Lab 03 >](./03-lab.md)
+[< Home](./readme.md)
 
 Appendix
 https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker_processing/scikit_learn_data_processing_and_model_evaluation/scikit_learn_data_processing_and_model_evaluation.ipynb

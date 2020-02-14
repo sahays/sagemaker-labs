@@ -397,8 +397,7 @@ pd.crosstab(index=test_data.iloc[:, 0], columns=np.where(predictions > 0.3, 1, 0
 sagemaker.Session().delete_endpoint(xgb_predictor.endpoint)
 ```
 
-[< Prev: Lab 02](./02-lab.md) | [Home](./readme.md) |
-[Next: Lab 04 >](./04-lab.md)
+[< Home](./readme.md)
 
 Appendix:
 https://aws.amazon.com/blogs/machine-learning/predicting-customer-churn-with-amazon-machine-learning/

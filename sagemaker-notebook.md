@@ -34,4 +34,4 @@ Create a new IAM role ![Permissions](./images/01-lab/04-permissions.png)
 
 ![hello-world](./images/01-lab/10-hello-world.png)
 
-[< Home](./readme.md) | [Next: Lab 02 >](./02-lab.md)
+[< Home](./readme.md)

@@ -1,3 +1,3 @@
 # Lab: Deploy your model and run inferences
 
-[< Prev: Lab 06](./06-lab.md) | [Home](./readme.md)
+[< Home](./readme.md)

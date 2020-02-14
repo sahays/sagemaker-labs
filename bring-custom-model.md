@@ -314,5 +314,4 @@ doing the data conversions for us.
 print(predictor.predict(test_data.values).decode('utf-8'))
 ```
 
-[< Prev: Lab 03](./03-lab.md) | [Home](./readme.md) |
-[Next: Lab 05 >](./05-lab.md)
+[< Home](./readme.md)
