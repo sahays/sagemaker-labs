@@ -1,4 +1,4 @@
-# Lab 03: Customer Churn Prediction with XGBoost
+# Lab: Customer Churn Prediction with XGBoost
 
 ## Overview
 

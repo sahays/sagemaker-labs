@@ -1,18 +1,33 @@
-# Lab 02: Feature engineering with Amazon SageMaker
-
+# Lab: Feature engineering with Amazon SageMaker
 
 ## Overview
-Typically a Machine Learning (ML) process consists of few steps: data gathering with various ETL jobs, pre-processing the data, featurizing the dataset by incorporating standard techniques or prior knowledge, and finally training an ML model using an algorithm. 
 
-In many cases, when the trained model is used for processing real time or batch prediction requests, the model receives data in a format which needs to pre-processed (e.g. featurized) before it can be passed to the algorithm. 
+Typically a Machine Learning (ML) process consists of few steps: data gathering
+with various ETL jobs, pre-processing the data, featurizing the dataset by
+incorporating standard techniques or prior knowledge, and finally training an ML
+model using an algorithm.
 
-In this lab, we will demonstrate how you can build your ML Pipeline leveraging the SageMaker Scikit-learn container and SageMaker Linear Learner algorithm & after the model is trained, run batch inferences using Amazon SageMaker Batch Transform.
+In many cases, when the trained model is used for processing real time or batch
+prediction requests, the model receives data in a format which needs to
+pre-processed (e.g. featurized) before it can be passed to the algorithm.
 
-We will demonstrate this using the Abalone Dataset to guess the age of Abalone with physical features. The dataset is available from UCI Machine Learning; the aim for this task is to determine age of an Abalone (a kind of shellfish) from its physical measurements. We'll use SageMaker's Scikit-learn container to featurize the dataset so that it can be used for training with Linear Learner.
+In this lab, we will demonstrate how you can build your ML Pipeline leveraging
+the SageMaker Scikit-learn container and SageMaker Linear Learner algorithm &
+after the model is trained, run batch inferences using Amazon SageMaker Batch
+Transform.
 
+We will demonstrate this using the Abalone Dataset to guess the age of Abalone
+with physical features. The dataset is available from UCI Machine Learning; the
+aim for this task is to determine age of an Abalone (a kind of shellfish) from
+its physical measurements. We'll use SageMaker's Scikit-learn container to
+featurize the dataset so that it can be used for training with Linear Learner.
 
 ## Step 1
-In the Notebook that you created in the previous lab, copy and paste the following code to create a SageMaker session and role, and create a S3 prefix to use for the notebook example.
+
+In the Notebook that you created in the previous lab, copy and paste the
+following code to create a SageMaker session and role, and create a S3 prefix to
+use for the notebook example.
+
 ```python
 import sagemaker
 from sagemaker import get_execution_role
@@ -29,51 +44,83 @@ role = get_execution_role()
 ```
 
 ## Step 2
-Download the dataset from this publically available S3 bucket and save it to `abalone_data` folder on your SageMaker instance
+
+Download the dataset from this publically available S3 bucket and save it to
+`abalone_data` folder on your SageMaker instance
+
 ```shell
 !wget --directory-prefix=./abalone_data https://s3-us-west-2.amazonaws.com/sparkml-mleap/data/abalone/abalone.csv
 ```
 
 ## Step 3
-Now, upload the data to your own S3 bucket inside a folder respresented by the `prefix` variable
+
+Now, upload the data to your own S3 bucket inside a folder respresented by the
+`prefix` variable
+
 ```python
 WORK_DIRECTORY = 'abalone_data'
 
 train_input = sagemaker_session.upload_data(
-    path='{}/{}'.format(WORK_DIRECTORY, 'abalone.csv'), 
+    path='{}/{}'.format(WORK_DIRECTORY, 'abalone.csv'),
     bucket=bucket,
     key_prefix='{}/{}'.format(prefix, 'train'))
 ```
 
 ## Step 4
 
-Let's start creating pre-processing scripts. 
+Let's start creating pre-processing scripts.
 
-Now we are ready to create the container that will preprocess our data before it’s sent to the trained Linear Learner model.  This container will run the `sklearn_abalone_featurizer.py` script, which Amazon SageMaker will import for both training and prediction. Training is executed using the main method as the entry point, which parses arguments, reads the raw abalone dataset from Amazon S3, then runs the `SimpleImputer` and `StandardScaler` on the numeric features and `SimpleImputer` and `OneHotEncoder` on the categorical features. At the end of training, the script serializes the fitted `ColumnTransformer` to Amazon S3 so that it may be used during inference.
+Now we are ready to create the container that will preprocess our data before
+it’s sent to the trained Linear Learner model. This container will run the
+`sklearn_abalone_featurizer.py` script, which Amazon SageMaker will import for
+both training and prediction. Training is executed using the main method as the
+entry point, which parses arguments, reads the raw abalone dataset from Amazon
+S3, then runs the `SimpleImputer` and `StandardScaler` on the numeric features
+and `SimpleImputer` and `OneHotEncoder` on the categorical features. At the end
+of training, the script serializes the fitted `ColumnTransformer` to Amazon S3
+so that it may be used during inference.
 
 ### Feature engineering using Amazon SageMaker [inference pipelines](https://docs.aws.amazon.com/sagemaker/latest/dg/inference-pipelines.html)
+
 We will train our classifier with the following features:
+
 - Numeric Features:
-    - length:  Longest shell measurement
-    - diameter: Diameter perpendicular to length
-    - height:  Height with meat in shell
-    - whole_weight: Weight of whole abalone
-    - shucked_weight: Weight of meat
-    - viscera_weight: Gut weight (after bleeding)
-    - shell_weight: Weight after being dried
+  - length: Longest shell measurement
+  - diameter: Diameter perpendicular to length
+  - height: Height with meat in shell
+  - whole_weight: Weight of whole abalone
+  - shucked_weight: Weight of meat
+  - viscera_weight: Gut weight (after bleeding)
+  - shell_weight: Weight after being dried
 - Categorical Features:
-    - sex: categories encoded as strings {'M', 'F', 'I'} where 'I' is Infant
+  - sex: categories encoded as strings {'M', 'F', 'I'} where 'I' is Infant
 
 ### Explanation of the code
-This training script is very similar to one you might run outside of SageMaker, but you can access useful properties about the training environment through various environment variables, such as:
-- SM_MODEL_DIR: A string representing the path to the directory to write model artifacts to. These artifacts are uploaded to S3 for model hosting.
-- SM_OUTPUT_DIR: A string representing the filesystem path to write output artifacts to. Output artifacts may include checkpoints, graphs, and other files to save, not including model artifacts. These artifacts are compressed and uploaded to S3 to the same S3 prefix as the model artifacts.
 
-Supposing two input channels, 'train' and 'test', were used in the call to the Chainer estimator's fit() method, the following will be set, following the format SMCHANNEL[channel_name]:
-- SM_CHANNEL_TRAIN: A string representing the path to the directory containing data in the 'train' channel
+This training script is very similar to one you might run outside of SageMaker,
+but you can access useful properties about the training environment through
+various environment variables, such as:
+
+- SM_MODEL_DIR: A string representing the path to the directory to write model
+  artifacts to. These artifacts are uploaded to S3 for model hosting.
+- SM_OUTPUT_DIR: A string representing the filesystem path to write output
+  artifacts to. Output artifacts may include checkpoints, graphs, and other
+  files to save, not including model artifacts. These artifacts are compressed
+  and uploaded to S3 to the same S3 prefix as the model artifacts.
+
+Supposing two input channels, 'train' and 'test', were used in the call to the
+Chainer estimator's fit() method, the following will be set, following the
+format SMCHANNEL[channel_name]:
+
+- SM_CHANNEL_TRAIN: A string representing the path to the directory containing
+  data in the 'train' channel
 - SM_CHANNEL_TEST: Same as above, but for the 'test' channel.
 
-A typical training script loads data from the input channels, configures training with hyperparameters, trains a model, and saves a model to `model_dir` so that it can be hosted later. Hyperparameters are passed to your script as arguments and can be retrieved with an `argparse.ArgumentParser` instance. 
+A typical training script loads data from the input channels, configures
+training with hyperparameters, trains a model, and saves a model to `model_dir`
+so that it can be hosted later. Hyperparameters are passed to your script as
+arguments and can be retrieved with an `argparse.ArgumentParser` instance.
+
 ```python
 from __future__ import print_function
 
@@ -150,8 +197,8 @@ if __name__ == '__main__':
                           'does not have permission to access the data.').format(args.train, "train"))
 
     raw_data = [ pd.read_csv(
-        file, 
-        header=None, 
+        file,
+        header=None,
         names=feature_columns_names + [label_column],
         dtype=merge_two_dicts(feature_columns_dtype, label_column_dtype)) for file in input_files ]
     concat_data = pd.concat(raw_data)
@@ -195,7 +242,16 @@ if __name__ == '__main__':
     print("saved model!")
 ```
 
-The next methods of the script are used during inference. The `input_fn` and `output_fn` methods will be used by Amazon SageMaker to parse the data payload and reformat the response. In this example, the input method only accepts `‘text/csv’` as the content-type, but can easily be modified to accept other input formats. The input_fn function also checks the length of the csv passed to determine whether to preprocess training data, which includes the label, or prediction data. The output method returns back in JSON format because by default the Inference Pipeline expects JSON between the containers, but can be modified to add other output formats.
+The next methods of the script are used during inference. The `input_fn` and
+`output_fn` methods will be used by Amazon SageMaker to parse the data payload
+and reformat the response. In this example, the input method only accepts
+`‘text/csv’` as the content-type, but can easily be modified to accept other
+input formats. The input_fn function also checks the length of the csv passed to
+determine whether to preprocess training data, which includes the label, or
+prediction data. The output method returns back in JSON format because by
+default the Inference Pipeline expects JSON between the containers, but can be
+modified to add other output formats.
+
 ```python
 def input_fn(input_data, content_type):
     """Parse input data payload
@@ -206,7 +262,7 @@ def input_fn(input_data, content_type):
     """
     if content_type == 'text/csv':
         # Read the raw input data as CSV.
-        df = pd.read_csv(StringIO(input_data), 
+        df = pd.read_csv(StringIO(input_data),
                          header=None)
 
         if len(df.columns) == len(feature_columns_names) + 1:
@@ -220,6 +276,7 @@ def input_fn(input_data, content_type):
     else:
         raise ValueError("{} not supported by script!".format(content_type))
 ```
+
 ```python
 def output_fn(prediction, accept):
     """Format prediction output
@@ -242,7 +299,11 @@ def output_fn(prediction, accept):
         raise RuntimeException("{} accept type is not supported by this script.".format(accept))
 ```
 
-Our `predict_fn` will take the input data, which was parsed by our `input_fn`, and the deserialized  model from the `model_fn` (described in detail next) to transform the source data. The script also adds back labels if the source data had labels, which would be the case for preprocessing training data.
+Our `predict_fn` will take the input data, which was parsed by our `input_fn`,
+and the deserialized model from the `model_fn` (described in detail next) to
+transform the source data. The script also adds back labels if the source data
+had labels, which would be the case for preprocessing training data.
+
 ```python
 def predict_fn(input_data, model):
     """Preprocess input data
@@ -264,7 +325,12 @@ def predict_fn(input_data, model):
         return features
 ```
 
-The `model_fn` takes the location of a serialized model and returns the deserialized model back to Amazon SageMaker. Note that this is the only method that does not have a default because the definition of the method will be closely linked to the serialization method implemented in training. In this example, we use the joblib library included with Scikit-learn.
+The `model_fn` takes the location of a serialized model and returns the
+deserialized model back to Amazon SageMaker. Note that this is the only method
+that does not have a default because the definition of the method will be
+closely linked to the serialization method implemented in training. In this
+example, we use the joblib library included with Scikit-learn.
+
 ```python
 
 def model_fn(model_dir):
@@ -275,6 +341,7 @@ def model_fn(model_dir):
 ```
 
 ## Step 5: Fit the data preprocessor
+
 ```python
 from sagemaker.sklearn.estimator import SKLearn
 
@@ -290,26 +357,37 @@ sklearn_preprocessor.fit({'train': train_input})
 ```
 
 ## Step 6: Batch transform the training data
-Now that our proprocessor is properly fitted, let's go ahead and preprocess our training data. Let's use batch transform to directly preprocess the raw data and store right back into Amazon S3.
+
+Now that our proprocessor is properly fitted, let's go ahead and preprocess our
+training data. Let's use batch transform to directly preprocess the raw data and
+store right back into Amazon S3.
+
 ### Define a SKLearn Transformer from the trained SKLearn Estimator
+
 ```python
 transformer = sklearn_preprocessor.transformer(
-    instance_count=1, 
+    instance_count=1,
     instance_type='ml.m4.xlarge',
     assemble_with = 'Line',
     accept = 'text/csv')
 ```
+
 ### Preprocess training input
-```python 
+
+```python
 transformer.transform(train_input, content_type='text/csv')
 print('Waiting for transform job: ' + transformer.latest_transform_job.job_name)
 transformer.wait()
 preprocessed_train = transformer.output_path
 print(preprocessed_train)
 ```
-When the transformer is done, our transformed data will be stored in Amazon S3.  You can find the location of the preprocessed data by looking at the values in the `preprocessed_train` variable.
+
+When the transformer is done, our transformed data will be stored in Amazon S3.
+You can find the location of the preprocessed data by looking at the values in
+the `preprocessed_train` variable.
 
 ### Transformed output
+
 ![abalone.csv.out](./images/02-lab/abalone.csv.out.png)
 
 ## Step 7: Head over to SageMaker console
@@ -320,4 +398,8 @@ When the transformer is done, our transformed data will be stored in Amazon S3. 
 
 ### Inference > Batch transform jobs
 
-[< Prev: Lab 01](./01-lab.md) | [Home](./readme.md) | [Next: Lab 03 >](./03-lab.md)
+[< Prev: Lab 01](./01-lab.md) | [Home](./readme.md) |
+[Next: Lab 03 >](./03-lab.md)
+
+Appendix
+https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker_processing/scikit_learn_data_processing_and_model_evaluation/scikit_learn_data_processing_and_model_evaluation.ipynb

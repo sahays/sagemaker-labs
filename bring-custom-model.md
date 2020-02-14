@@ -1,4 +1,4 @@
-# Lab 04: Bring your own model with Amazon SageMaker
+# Lab: Bring your own model with Amazon SageMaker
 
 ## When should I build my own algorithm container?
 
@@ -150,7 +150,7 @@ up the right environment to run under.
 !mv scikit_bring_your_own/container ./
 !rm scikit_bring_your_own.zip
 !rm -rf scikit_bring_your_own
-!cat scikit_bring_your_own/container/Dockerfile
+!cat container/Dockerfile
 ```
 
 ### Building and registering the container
