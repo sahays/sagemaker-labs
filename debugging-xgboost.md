@@ -338,6 +338,7 @@ def plot_collection(trial, collection_name, regex='.*', figsize=(8, 6)):
 ```python
 plot_collection(trial, "metrics")
 ```
+![](./images/debugging/metric.png)
 
 ### Feature importances
 
@@ -364,6 +365,7 @@ plot_feature_importance(trial)
 ```python
 plot_feature_importance(trial, importance_type="cover")
 ```
+![](./images/debugging/feature.png)
 
 ### SHAP
 
@@ -377,5 +379,7 @@ collection.
 ```python
 plot_collection(trial,"average_shap")
 ```
+![](./images/debugging/shap.png)
+
 
 [Home](./readme.md)
