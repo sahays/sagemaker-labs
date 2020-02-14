@@ -56,7 +56,7 @@ from sagemaker import get_execution_role
 role = get_execution_role()
 ```
 
-## Data exploration
+## Data exploration (...and more feature engineering)
 
 Mobile operators have historical records on which customers ultimately ended up
 churning and which continued using the service. We can use this historical
@@ -315,8 +315,91 @@ hosted endpoint.
 xgb_predictor = compiled_model.deploy(initial_instance_count = 1, instance_type = 'ml.m4.xlarge')
 ```
 
+## Evaluate
+
+Now that we have a hosted endpoint running, we can make real-time predictions
+from our model very easily, simply by making an http POST request. But first,
+we'll need to setup serializers and deserializers for passing our test_data
+NumPy arrays to the model behind the endpoint.
+
+```python
+xgb_predictor.content_type = 'text/csv'
+xgb_predictor.serializer = csv_serializer
+xgb_predictor.deserializer = None
+```
+
+Now, we'll use a simple function to:
+
+- Loop over our test dataset
+- Split it into mini-batches of rows
+- Convert those mini-batchs to CSV string payloads
+- Retrieve mini-batch predictions by invoking the XGBoost endpoint
+- Collect predictions and convert from the CSV output our model provides into a
+  NumPy array
+
+```python
+def predict(data, rows=500):
+    split_array = np.array_split(data, int(data.shape[0] / float(rows) + 1))
+    predictions = ''
+    for array in split_array:
+        predictions = ','.join([predictions, xgb_predictor.predict(array).decode('utf-8')])
+
+    return np.fromstring(predictions[1:], sep=',')
+
+predictions = predict(test_data.as_matrix()[:, 1:])
+```
+
+There are many ways to compare the performance of a machine learning model, but
+let's start by simply by comparing actual to predicted values. In this case,
+we're simply predicting whether the customer churned (1) or not (0), which
+produces a simple confusion matrix.
+
+```python
+pd.crosstab(index=test_data.iloc[:, 0], columns=np.round(predictions), rownames=['actual'], colnames=['predictions'])
+```
+
+Note, due to randomized elements of the algorithm, you results may differ
+slightly.
+
+Of the 48 churners, we've correctly predicted 39 of them (true positives). And,
+we incorrectly predicted 4 customers would churn who then ended up not doing so
+(false positives). There are also 9 customers who ended up churning, that we
+predicted would not (false negatives).
+
+An important point here is that because of the np.round() function above we are
+using a simple threshold (or cutoff) of 0.5. Our predictions from xgboost come
+out as continuous values between 0 and 1 and we force them into the binary
+classes that we began with. However, because a customer that churns is expected
+to cost the company more than proactively trying to retain a customer who we
+think might churn, we should consider adjusting this cutoff. That will almost
+certainly increase the number of false positives, but it can also be expected to
+increase the number of true positives and reduce the number of false negatives.
+
+To get a rough intuition here, let's look at the continuous values of our
+predictions.
+
+```python
+plt.hist(predictions)
+plt.show()
+```
+
+The continuous valued predictions coming from our model tend to skew toward 0 or
+1, but there is sufficient mass between 0.1 and 0.9 that adjusting the cutoff
+should indeed shift a number of customers' predictions. For example
+
+```python
+pd.crosstab(index=test_data.iloc[:, 0], columns=np.where(predictions > 0.3, 1, 0))
+```
+
+## Cleanup (optional)
+
+```python
+sagemaker.Session().delete_endpoint(xgb_predictor.endpoint)
+```
+
 [< Prev: Lab 02](./02-lab.md) | [Home](./readme.md) |
 [Next: Lab 04 >](./04-lab.md)
 
 Appendix:
 https://aws.amazon.com/blogs/machine-learning/predicting-customer-churn-with-amazon-machine-learning/
+https://github.com/awslabs/amazon-sagemaker-examples/blob/master/introduction_to_applying_machine_learning/xgboost_customer_churn/xgboost_customer_churn.ipynb
