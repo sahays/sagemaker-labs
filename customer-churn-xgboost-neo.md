@@ -398,7 +398,3 @@ sagemaker.Session().delete_endpoint(xgb_predictor.endpoint)
 ```
 
 [< Home](./readme.md)
-
-Appendix:
-https://aws.amazon.com/blogs/machine-learning/predicting-customer-churn-with-amazon-machine-learning/
-https://github.com/awslabs/amazon-sagemaker-examples/blob/master/introduction_to_applying_machine_learning/xgboost_customer_churn/xgboost_customer_churn.ipynb

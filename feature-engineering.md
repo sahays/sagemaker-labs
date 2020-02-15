@@ -390,15 +390,4 @@ the `preprocessed_train` variable.
 
 ![abalone.csv.out](./images/02-lab/abalone.csv.out.png)
 
-## Step 7: Head over to SageMaker console
-
-### Training > Training jobs
-
-### Inference > Models
-
-### Inference > Batch transform jobs
-
 [< Home](./readme.md)
-
-Appendix
-https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker_processing/scikit_learn_data_processing_and_model_evaluation/scikit_learn_data_processing_and_model_evaluation.ipynb

@@ -4,11 +4,13 @@
 
 [Lab 02: Feature engineering](./feature-engineering.md)
 
-[Lab 03: Regression with Amazon SageMaker built-in algorithm XGBoost](./customer-churn-xgboost-neo.md)
+[Lab 03: Regression with Amazon SageMaker built-in algorithm XGBoost](./regression-xgboost-abalone.md)
 
 [Lab 04: Bring your own custom model with Amazon SageMaker](./bring-custom-model.md)
 
-[Lab 05: Hyperparameter tuning with Amazon SageMaker](./hyperparamter-tuning.md)
+[Lab 05: Hyperparameter tuning with Amazon SageMaker](./hyperparameter-tuning.md)
+
+# Advanced topics
 
 [Lab 06: Debugging XGBoost Training Jobs with Amazon SageMaker Debugger](./debugging-xgboost.md)
 
