@@ -66,7 +66,7 @@ train_input = sagemaker_session.upload_data(
     key_prefix='{}/{}'.format(prefix, 'train'))
 ```
 
-## Step 4
+## Step 4 (Optional - just review)
 
 Let's start creating pre-processing scripts.
 

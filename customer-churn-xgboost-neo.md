@@ -1,4 +1,4 @@
-# Lab: Customer Churn Prediction with XGBoost and Amazon SageMaker Neo
+# Lab: Feature engineering and customer Churn Prediction with XGBoost
 
 ## Overview
 
