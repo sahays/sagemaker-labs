@@ -11,10 +11,10 @@ In many cases, when the trained model is used for processing real time or batch
 prediction requests, the model receives data in a format which needs to
 pre-processed (e.g. featurized) before it can be passed to the algorithm.
 
-In this lab, we will demonstrate how you can build your ML Pipeline leveraging
-the SageMaker Scikit-learn container and SageMaker Linear Learner algorithm &
-after the model is trained, run batch inferences using Amazon SageMaker Batch
-Transform.
+In this lab, we will demonstrate how to perform feature engineering while
+building an ML Pipeline leveraging the SageMaker Scikit-learn container and
+SageMaker Linear Learner algorithm & after the model is trained, run batch
+inferences using Amazon SageMaker Batch Transform.
 
 We will demonstrate this using the Abalone Dataset to guess the age of Abalone
 with physical features. The dataset is available from UCI Machine Learning; the

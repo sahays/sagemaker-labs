@@ -56,7 +56,22 @@ from sagemaker import get_execution_role
 role = get_execution_role()
 ```
 
-## Data exploration (...and more feature engineering)
+```python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import io
+import os
+import sys
+import time
+import json
+from IPython.display import display
+from time import strftime, gmtime
+import sagemaker
+from sagemaker.predictor import csv_serializer
+```
+
+## Data exploration feature engineering
 
 Mobile operators have historical records on which customers ultimately ended up
 churning and which continued using the service. We can use this historical
@@ -240,25 +255,7 @@ s3_input_train = sagemaker.s3_input(s3_data='s3://{}/{}/train'.format(bucket, pr
 s3_input_validation = sagemaker.s3_input(s3_data='s3://{}/{}/validation/'.format(bucket, prefix), content_type='csv')
 ```
 
-Now, we can specify a few parameters like what type of training instances we'd
-like to use and how many, as well as our XGBoost hyperparameters. A few key
-hyperparameters are:
-
-- max_depth controls how deep each tree within the algorithm can be built.
-  Deeper trees can lead to better fit, but are more computationally expensive
-  and can lead to overfitting. There is typically some trade-off in model
-  performance that needs to be explored between a large number of shallow trees
-  and a smaller number of deeper trees.
-- subsample controls sampling of the training data. This technique can help
-  reduce overfitting, but setting it too low can also starve the model of data.
-- num_round controls the number of boosting rounds. This is essentially the
-  subsequent models that are trained using the residuals of previous iterations.
-  Again, more rounds should produce a better fit on the training data, but can
-  be computationally expensive or lead to overfitting.
-- eta controls how aggressive each round of boosting is. Larger values lead to
-  more conservative boosting.
-- gamma controls how aggressively trees are grown. Larger values lead to more
-  conservative models.
+and then, start the training job
 
 ```python
 sess = sagemaker.Session()
@@ -269,132 +266,8 @@ xgb = sagemaker.estimator.Estimator(container,
                                     train_instance_type='ml.m4.xlarge',
                                     output_path='s3://{}/{}/output'.format(bucket, prefix),
                                     sagemaker_session=sess)
-xgb.set_hyperparameters(max_depth=5,
-                        eta=0.2,
-                        gamma=4,
-                        min_child_weight=6,
-                        subsample=0.8,
-                        silent=0,
-                        objective='binary:logistic',
-                        num_round=100)
 
 xgb.fit({'train': s3_input_train, 'validation': s3_input_validation})
-```
-
-## Compile with SageMaker Neo
-
-Amazon SageMaker Neo optimizes models to run up to twice as fast, with no loss
-in accuracy. When calling compile_model() function, we specify the target
-instance family (m4) as well as the S3 bucket to which the compiled model would
-be stored.
-
-```python
-compiled_model = xgb
-try:
-    xgb.create_model()._neo_image_account(boto3.Session().region_name)
-except:
-    print('Neo is not currently supported in', boto3.Session().region_name)
-else:
-    output_path = '/'.join(xgb.output_path.split('/')[:-1])
-    compiled_model = xgb.compile_model(target_instance_family='ml_m4',
-                                   input_shape={'data':[1, 69]},
-                                   role=role,
-                                   framework='xgboost',
-                                   framework_version='0.7',
-                                   output_path=output_path)
-    compiled_model.name = 'deployed-xgboost-customer-churn'
-    compiled_model.image = get_image_uri(sess.boto_region_name, 'xgboost-neo', repo_version='latest')
-```
-
-## Host
-
-Now that we've trained the algorithm, let's create a model and deploy it to a
-hosted endpoint.
-
-```python
-xgb_predictor = compiled_model.deploy(initial_instance_count = 1, instance_type = 'ml.m4.xlarge')
-```
-
-## Evaluate
-
-Now that we have a hosted endpoint running, we can make real-time predictions
-from our model very easily, simply by making an http POST request. But first,
-we'll need to setup serializers and deserializers for passing our test_data
-NumPy arrays to the model behind the endpoint.
-
-```python
-xgb_predictor.content_type = 'text/csv'
-xgb_predictor.serializer = csv_serializer
-xgb_predictor.deserializer = None
-```
-
-Now, we'll use a simple function to:
-
-- Loop over our test dataset
-- Split it into mini-batches of rows
-- Convert those mini-batchs to CSV string payloads
-- Retrieve mini-batch predictions by invoking the XGBoost endpoint
-- Collect predictions and convert from the CSV output our model provides into a
-  NumPy array
-
-```python
-def predict(data, rows=500):
-    split_array = np.array_split(data, int(data.shape[0] / float(rows) + 1))
-    predictions = ''
-    for array in split_array:
-        predictions = ','.join([predictions, xgb_predictor.predict(array).decode('utf-8')])
-
-    return np.fromstring(predictions[1:], sep=',')
-
-predictions = predict(test_data.as_matrix()[:, 1:])
-```
-
-There are many ways to compare the performance of a machine learning model, but
-let's start by simply by comparing actual to predicted values. In this case,
-we're simply predicting whether the customer churned (1) or not (0), which
-produces a simple confusion matrix.
-
-```python
-pd.crosstab(index=test_data.iloc[:, 0], columns=np.round(predictions), rownames=['actual'], colnames=['predictions'])
-```
-
-Note, due to randomized elements of the algorithm, you results may differ
-slightly.
-
-Of the 48 churners, we've correctly predicted 39 of them (true positives). And,
-we incorrectly predicted 4 customers would churn who then ended up not doing so
-(false positives). There are also 9 customers who ended up churning, that we
-predicted would not (false negatives).
-
-An important point here is that because of the np.round() function above we are
-using a simple threshold (or cutoff) of 0.5. Our predictions from xgboost come
-out as continuous values between 0 and 1 and we force them into the binary
-classes that we began with. However, because a customer that churns is expected
-to cost the company more than proactively trying to retain a customer who we
-think might churn, we should consider adjusting this cutoff. That will almost
-certainly increase the number of false positives, but it can also be expected to
-increase the number of true positives and reduce the number of false negatives.
-
-To get a rough intuition here, let's look at the continuous values of our
-predictions.
-
-```python
-plt.hist(predictions)
-plt.show()
-```
-
-The continuous valued predictions coming from our model tend to skew toward 0 or
-1, but there is sufficient mass between 0.1 and 0.9 that adjusting the cutoff
-should indeed shift a number of customers' predictions. For example
-
-```python
-pd.crosstab(index=test_data.iloc[:, 0], columns=np.where(predictions > 0.3, 1, 0))
-```
-
-## Cleanup (optional)
-
-```python
-sagemaker.Session().delete_endpoint(xgb_predictor.endpoint)
 ```
 
 [< Home](./readme.md)
