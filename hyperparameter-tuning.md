@@ -341,6 +341,7 @@ boto3.client('sagemaker').describe_hyper_parameter_tuning_job(
 Once the tuning jobs have completed, we can compare the distribution of the
 hyperparameter configurations chosen in the two cases.
 
+Logarithmic
 ```python
 tuner_log = HyperparameterTuner(
     xgb,
@@ -353,10 +354,36 @@ tuner_log = HyperparameterTuner(
 
 tuner_log.fit({'train': s3_input_train, 'validation': s3_input_validation}, include_cls_metadata=False)
 ```
-
+Let's just run a quick check of the hyperparameter tuning jobs status to make sure it started successfully.
 ```
 boto3.client('sagemaker').describe_hyper_parameter_tuning_job(
     HyperParameterTuningJobName=tuner_log.latest_tuning_job.job_name)['HyperParameterTuningJobStatus']
+```
+
+Linear
+```python
+hyperparameter_ranges_linear = {
+    'alpha': ContinuousParameter(0.01, 10, scaling_type="Linear"),
+    'lambda': ContinuousParameter(0.01, 10, scaling_type="Linear")
+}
+tuner_linear = HyperparameterTuner(
+    xgb,
+    objective_metric_name,
+    hyperparameter_ranges_linear,
+    max_jobs=20,
+    max_parallel_jobs=10,
+    strategy='Random'
+)
+
+# custom job name to avoid a duplicate name
+job_name = tuner_log.latest_tuning_job.job_name + 'linear'
+tuner_linear.fit({'train': s3_input_train, 'validation': s3_input_validation}, include_cls_metadata=False, job_name=job_name)
+```
+
+Check of the hyperparameter tuning jobs status
+```python
+boto3.client('sagemaker').describe_hyper_parameter_tuning_job(
+    HyperParameterTuningJobName=tuner_linear.latest_tuning_job.job_name)['HyperParameterTuningJobStatus']
 ```
 
 ```python
