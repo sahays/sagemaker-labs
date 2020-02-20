@@ -342,6 +342,24 @@ Once the tuning jobs have completed, we can compare the distribution of the
 hyperparameter configurations chosen in the two cases.
 
 ```python
+tuner_log = HyperparameterTuner(
+    xgb,
+    objective_metric_name,
+    hyperparameter_ranges,
+    max_jobs=20,
+    max_parallel_jobs=10,
+    strategy='Random'
+)
+
+tuner_log.fit({'train': s3_input_train, 'validation': s3_input_validation}, include_cls_metadata=False)
+```
+
+```
+boto3.client('sagemaker').describe_hyper_parameter_tuning_job(
+    HyperParameterTuningJobName=tuner_log.latest_tuning_job.job_name)['HyperParameterTuningJobStatus']
+```
+
+```python
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
